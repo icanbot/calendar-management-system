@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传 - 日程管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 30px;
+            padding-bottom: 50px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .upload-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+        
+        .file-list {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+        
+        .file-item {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        .file-item:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .file-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+        }
+        
+        .text-file { color: #3498db; }
+        .image-file { color: #e74c3c; }
+        .doc-file { color: #2ecc71; }
+        .other-file { color: #95a5a6; }
+        
+        .drop-zone {
+            border: 3px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #667eea;
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+        
+        .btn-upload {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .progress {
+            height: 10px;
+            margin-top: 10px;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-cloud-upload-alt"></i> 文件上传系统</h1>
+            <p class="subtitle">上传文件，我可以读取并帮助你分析内容</p>
+            <a href="index.html" class="btn btn-light mt-3"><i class="fas fa-calendar-alt"></i> 返回日程管理</a>
+        </div>
+        
+        <div class="upload-container">
+            <h3><i class="fas fa-upload"></i> 上传文件</h3>
+            <p class="text-muted mb-4">支持多种文件格式：文档、图片、文本文件等（最大10MB）</p>
+            
+            <div class="drop-zone" id="dropZone">
+                <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: #667eea;"></i>
+                <h4>拖放文件到这里</h4>
+                <p class="text-muted">或点击选择文件</p>
+                <input type="file" id="fileInput" class="d-none">
+                <button class="btn btn-upload mt-2" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-folder-open"></i> 选择文件
+                </button>
+            </div>
+            
+            <div id="fileInfo" class="d-none">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    已选择文件：<span id="fileName"></span> (<span id="fileSize"></span>)
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-upload" id="uploadBtn" onclick="uploadFile()">
+                        <i class="fas fa-paper-plane"></i> 上传文件
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="clearSelection()">
+                        <i class="fas fa-times"></i> 取消选择
+                    </button>
+                </div>
+                
+                <div class="progress d-none" id="progressBar">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div id="uploadResult" class="mt-4"></div>
+        </div>
+        
+        <div class="file-list">
+            <h3><i class="fas fa-folder-open"></i> 已上传文件</h3>
+            <p class="text-muted mb-4">点击文件名可以查看或分析文件内容</p>
+            <div id="fileListContainer">
+                <div class="alert alert-info">
+                    <i class="fas fa-sync-alt fa-spin"></i> 正在加载文件列表...
+                </div>
+            </div>
+        </div>
+        
+        <div class="template-download" style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 30px; box-shadow: 0 3px 15px rgba(0,0,0,0.08);">
+            <h3><i class="fas fa-file-excel" style="color: #217346;"></i> 模板下载</h3>
+            <p class="text-muted mb-4">项目月度工作计划Excel模板，按1-12月横向展示工作内容</p>
+            
+            <div class="template-item" style="border: 1px solid #e9ecef; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
+                <div class="d-flex align-items-center">
+                    <div style="font-size: 2rem; margin-right: 15px; color: #217346;">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 style="margin-bottom: 5px;">项目月度工作计划表.xlsx</h5>
+                        <div class="d-flex justify-content-between text-muted small" style="margin-bottom: 10px;">
+                            <span><i class="fas fa-hdd"></i> 6.3KB</span>
+                            <span><i class="fas fa-clock"></i> 刚刚创建</span>
+                        </div>
+                        <p style="margin-bottom: 15px; color: #666;">
+                            包含《中国石化集中统一电力交易与综合管理平台建设项目》2026年1-12月工作计划示例，格式符合要求。
+                        </p>
+                        <div>
+                            <a href="/calendar/uploads/20260211_153918_project_monthly_plan.xlsx" class="btn btn-success" style="background: #217346; border-color: #217346;">
+                                <i class="fas fa-download"></i> 下载Excel模板
+                            </a>
+                            <button class="btn btn-outline-secondary" onclick="alert('模板说明：\\n1. 横向表头为1-12个月\\n2. 每格格式：《项目名称》本月要完成工作包括：具体工作内容\\n3. 已包含示例数据')">
+                                <i class="fas fa-info-circle"></i> 使用说明
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info" style="margin-top: 20px;">
+                <i class="fas fa-lightbulb"></i>
+                <strong>格式要求：</strong> 每格内容必须按照"《项目名称》本月要完成工作包括：具体工作内容"的格式填写，如示例所示。
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 页面加载时获取文件列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFileList();
+            
+            // 设置拖放事件
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+        });
+        
+        function handleFileSelect(file) {
+            if (file.size > 10 * 1024 * 1024) {
+                showMessage('文件大小超过10MB限制', 'danger');
+                return;
+            }
+            
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').classList.remove('d-none');
+            document.getElementById('uploadResult').innerHTML = '';
+            
+            window.selectedFile = file;
+        }
+        
+        function clearSelection() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.add('d-none');
+            delete window.selectedFile;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (['txt', 'md', 'json', 'js', 'py', 'html', 'css', 'xml'].includes(ext)) {
+                return 'text-file';
+            } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+                return 'image-file';
+            } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+                return 'doc-file';
+            } else {
+                return 'other-file';
+            }
+        }
+        
+        function uploadFile() {
+            if (!window.selectedFile) return;
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
+            
+            uploadBtn.disabled = true;
+            progressBar.classList.remove('d-none');
+            progressBarInner.style.width = '0%';
+            
+            const formData = new FormData();
+            formData.append('file', window.selectedFile);
+            
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percent = (e.loaded / e.total) * 100;
+                    progressBarInner.style.width = percent + '%';
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                progressBarInner.style.width = '100%';
+                
+                setTimeout(function() {
+                    progressBar.classList.add('d-none');
+                    uploadBtn.disabled = false;
+                    
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            const data = response.data;
+                            showMessage(`文件上传成功：${data.filename}`, 'success');
+                            loadFileList();
+                            clearSelection();
+                        } else {
+                            showMessage(`上传失败：${response.message}`, 'danger');
+                        }
+                    } catch (e) {
+                        showMessage('上传失败：服务器响应异常', 'danger');
+                    }
+                }, 500);
+            });
+            
+            xhr.addEventListener('error', function() {
+                showMessage('上传失败：网络错误', 'danger');
+                progressBar.classList.add('d-none');
+                uploadBtn.disabled = false;
+            });
+            
+            // 添加认证头（使用base64编码的admin:Admin@2026）
+            xhr.open('POST', '/calendar/api/upload');
+            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            xhr.send(formData);
+        }
+        
+        function loadFileList() {
+            const container = document.getElementById('fileListContainer');
+            container.innerHTML = '<div class="alert alert-info"><i class="fas fa-sync-alt fa-spin"></i> 正在加载文件列表...</div>';
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/calendar/api/uploads');
+            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success && response.data && response.data.length > 0) {
+                            displayFileList(response.data);
+                        } else {
+                            container.innerHTML = `
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    还没有上传任何文件。
+                                </div>
+                            `;
+                        }
+                    } catch (e) {
+                        container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                解析文件列表失败：${e.message}
+                            </div>
+                        `;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            获取文件列表失败：HTTP ${xhr.status}
+                        </div>
+                    `;
+                }
+            };
+            
+            xhr.onerror = function() {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle"></i>
+                        无法连接到服务器
+                    </div>
+                `;
+            };
+            
+            xhr.send();
+        }
+        
+        function displayFileList(files) {
+            const container = document.getElementById('fileListContainer');
+            let html = '';
+            
+            files.forEach(file => {
+                const iconClass = getFileIcon(file.name);
+                const size = formatFileSize(file.size);
+                const modified = new Date(file.modified).toLocaleString();
+                
+                html += `
+                    <div class="file-item">
+                        <div class="d-flex align-items-center">
+                            <div class="file-icon ${iconClass}">
+                                <i class="fas fa-${getFileIconClass(file.type)}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">${file.name}</h6>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span><i class="fas fa-hdd"></i> ${size}</span>
+                                    <span><i class="fas fa-clock"></i> ${modified}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="${file.url}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="fas fa-eye"></i> 查看
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-success" onclick="analyzeFile('${file.name}')">
+                                        <i class="fas fa-search"></i> 分析
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFile('${file.name}')">
+                                        <i class="fas fa-trash"></i> 删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getFileIconClass(fileType) {
+            switch(fileType) {
+                case 'text': return 'file-alt';
+                case 'image': return 'image';
+                case 'document': return 'file-pdf';
+                default: return 'file';
+            }
+        }
+        
+        function analyzeFile(filename) {
+            alert(`即将分析文件：${filename}\n\n这个功能需要后端支持，目前正在开发中。`);
+        }
+        
+        function deleteFile(filename) {
+            if (!confirm(`确定要删除文件 "${filename}" 吗？`)) {
+                return;
+            }
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('DELETE', `/calendar/api/uploads/${encodeURIComponent(filename)}`);
+            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            
+            xhr.onload = function() {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (xhr.status === 200 && response.success) {
+                        showMessage(`文件 "${filename}" 删除成功`, 'success');
+                        // 重新加载文件列表
+                        loadFileList();
+                    } else {
+                        const errorMsg = response.message || `删除失败：HTTP ${xhr.status}`;
+                        showMessage(`删除文件 "${filename}" 失败：${errorMsg}`, 'error');
+                    }
+                } catch (e) {
+                    showMessage(`删除文件 "${filename}" 失败：响应解析错误`, 'error');
+                }
+            };
+            
+            xhr.onerror = function() {
+                showMessage(`删除文件 "${filename}" 失败：无法连接到服务器`, 'error');
+            };
+            
+            xhr.send();
+        }
+        
+        function showMessage(text, type) {
+            const resultDiv = document.getElementById('uploadResult');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            
+            resultDiv.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                    ${text}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

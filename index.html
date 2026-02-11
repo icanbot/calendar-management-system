@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日程管理系统 - 项目群总负责人</title>
+    
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS (简化版) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --danger-color: #F44336;
+            --meeting-color: #2196F3;
+            --work-color: #4CAF50;
+            --personal-color: #9C27B0;
+            --other-color: #607D8B;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .calendar-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+        
+        .form-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+        
+        .list-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+        
+        .event-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .badge-meeting { background-color: var(--meeting-color); color: white; }
+        .badge-work { background-color: var(--work-color); color: white; }
+        .badge-personal { background-color: var(--personal-color); color: white; }
+        .badge-other { background-color: var(--other-color); color: white; }
+        
+        .event-card {
+            border-left: 4px solid;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .event-card.meeting { border-left-color: var(--meeting-color); }
+        .event-card.work { border-left-color: var(--work-color); }
+        .event-card.personal { border-left-color: var(--personal-color); }
+        .event-card.other { border-left-color: var(--other-color); }
+        
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-scheduled { background-color: #e3f2fd; color: #1976d2; }
+        .status-in_progress { background-color: #fff3e0; color: #f57c00; }
+        .status-completed { background-color: #e8f5e9; color: #388e3c; }
+        .status-cancelled { background-color: #ffebee; color: #d32f2f; }
+        
+        .stats-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .stats-today { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
+        .stats-upcoming { background: linear-gradient(135deg, #2196F3, #1565C0); }
+        .stats-meetings { background: linear-gradient(135deg, #9C27B0, #6A1B9A); }
+        .stats-work { background: linear-gradient(135deg, #FF9800, #EF6C00); }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stats-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .fc-event {
+            border-radius: 6px;
+            padding: 2px 5px;
+            font-size: 0.9rem;
+        }
+        
+        .form-section {
+            margin-bottom: 25px;
+        }
+        
+        .form-section-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 8px;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #777;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .navigation {
+            margin-bottom: 25px;
+        }
+        
+        .nav-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-right: 10px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .nav-btn:hover, .nav-btn.active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .calendar-container, .form-container, .list-container {
+                padding: 15px;
+            }
+            
+            .stats-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 返回工具集链接 -->
+        <div class="navigation">
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 返回工具集
+            </a>
+        </div>
+        
+        <!-- 页面标题 -->
+        <div class="header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-calendar-alt"></i> 日程管理系统</h1>
+                    <div class="subtitle">项目群总负责人 - 工作安排与会议管理</div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div id="current-date" class="h4 mb-0"></div>
+                    <div id="current-time" class="h6"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card stats-today">
+                    <div class="stats-number" id="today-count">0</div>
+                    <div class="stats-label">今日安排</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card stats-upcoming">
+                    <div class="stats-number" id="upcoming-count">0</div>
+                    <div class="stats-label">未来7天</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card stats-meetings">
+                    <div class="stats-number" id="meeting-count">0</div>
+                    <div class="stats-label">会议安排</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card stats-work">
+                    <div class="stats-number" id="work-count">0</div>
+                    <div class="stats-label">工作安排</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 导航选项卡 -->
+        <div class="navigation mb-4">
+            <button class="nav-btn active" id="tab-calendar" onclick="switchTab('calendar')">
+                <i class="fas fa-calendar"></i> 日历视图
+            </button>
+            <button class="nav-btn" id="tab-form" onclick="switchTab('form')">
+                <i class="fas fa-plus-circle"></i> 新建日程
+            </button>
+            <button class="nav-btn" id="tab-list" onclick="switchTab('list')">
+                <i class="fas fa-list"></i> 事件列表
+            </button>
+        </div>
+        
+        <!-- 日历视图 -->
+        <div id="calendar-tab" class="tab-content">
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+        </div>
+        
+        <!-- 表单视图 -->
+        <div id="form-tab" class="tab-content" style="display: none;">
+            <div class="form-container">
+                <h3 class="form-section-title"><i class="fas fa-calendar-plus"></i> 新建日程安排</h3>
+                
+                <form id="event-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <label for="event-title" class="form-label">标题 *</label>
+                                <input type="text" class="form-control" id="event-title" required 
+                                       placeholder="例如：项目评审会议、需求分析工作">
+                            </div>
+                            
+                            <div class="form-section">
+                                <label for="event-type" class="form-label">类型 *</label>
+                                <select class="form-control" id="event-type" required>
+                                    <option value="meeting">会议</option>
+                                    <option value="work" selected>工作安排</option>
+                                    <option value="personal">个人事务</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-section">
+                                <label for="event-start" class="form-label">开始时间 *</label>
+                                <input type="datetime-local" class="form-control" id="event-start" required>
+                            </div>
+                            
+                            <div class="form-section">
+                                <label for="event-end" class="form-label">结束时间 *</label>
+                                <input type="datetime-local" class="form-control" id="event-end" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <label for="event-location" class="form-label">地点</label>
+                                <input type="text" class="form-control" id="event-location" 
+                                       placeholder="例如：会议室A、线上会议">
+                            </div>
+                            
+                            <div class="form-section">
+                                <label for="event-participants" class="form-label">参与者</label>
+                                <input type="text" class="form-control" id="event-participants" 
+                                       placeholder="用逗号分隔，例如：张三,李四,王五">
+                                <small class="form-text text-muted">输入参与者姓名，用逗号分隔</small>
+                            </div>
+                            
+                            <div class="form-section">
+                                <label for="event-description" class="form-label">详细描述</label>
+                                <textarea class="form-control" id="event-description" rows="4" 
+                                          placeholder="请填写日程的详细说明、议程、注意事项等"></textarea>
+                            </div>
+                            
+                            <div class="form-section">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="event-all-day">
+                                    <label class="form-check-label" for="event-all-day">
+                                        全天事件
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <label for="event-reminder" class="form-label">提前提醒</label>
+                                <select class="form-control" id="event-reminder">
+                                    <option value="0">不提醒</option>
+                                    <option value="5" selected>提前5分钟</option>
+                                    <option value="15">提前15分钟</option>
+                                    <option value="30">提前30分钟</option>
+                                    <option value="60">提前1小时</option>
+                                    <option value="1440">提前1天</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary-custom">
+                                <i class="fas fa-save"></i> 保存日程
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                <i class="fas fa-redo"></i> 重置表单
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 列表视图 -->
+        <div id="list-tab" class="tab-content" style="display: none;">
+            <div class="list-container">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h3 class="form-section-title"><i class="fas fa-list-ul"></i> 日程列表</h3>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search-events" placeholder="搜索日程...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="searchEvents()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" onclick="filterEvents('all')">全部</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterEvents('today')">今日</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterEvents('upcoming')">即将</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterEvents('meeting')">会议</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterEvents('work')">工作</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="events-list">
+                    <!-- 事件列表将通过JavaScript动态加载 -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3">正在加载日程数据...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>© 2026 项目群总负责人日程管理系统 | 版本 1.0 | 最后更新: 2026-02-10</p>
+            <p>所有日程数据安全存储于本地服务器，仅授权用户可访问</p>
+        </div>
+    </div>
+    
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/zh-cn.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 应用程序JS -->
+    <script>
+        // 全局变量
+        let calendar;
+        let currentEvents = [];
+        let editingEventId = null;
+        
+        // API基础URL
+        const API_BASE = '/calendar/api/events';
+        
+        // 初始化函数
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化日期时间显示
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // 初始化日历
+            initCalendar();
+            
+            // 初始化表单
+            initForm();
+            
+            // 加载初始数据
+            loadTodayStats();
+            loadUpcomingStats();
+            loadEventList();
+            
+            // 设置表单提交处理
+            document.getElementById('event-form').addEventListener('submit', handleFormSubmit);
+            
+            // 设置搜索框输入事件
+            document.getElementById('search-events').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    searchEvents();
+                }
+            });
+            
+            // 设置开始和结束时间的逻辑
+            document.getElementById('event-start').addEventListener('change', function() {
+                const startValue = this.value;
+                const endInput = document.getElementById('event-end');
+                if (startValue && (!endInput.value || endInput.value < startValue)) {
+                    // 设置结束时间为开始时间后1小时
+                    const startDate = new Date(startValue);
+                    startDate.setHours(startDate.getHours() + 1);
+                    endInput.value = startDate.toISOString().slice(0, 16);
+                }
+            });
+        });
+        
+        // 更新日期时间显示
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-CN', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+            const timeStr = now.toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit'
+            });
+            
+            document.getElementById('current-date').textContent = dateStr;
+            document.getElementById('current-time').textContent = timeStr;
+        }
+        
+        // 初始化日历
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                locale: 'zh-cn',
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                editable: true,
+                selectable: true,
+                selectMirror: true,
+                dayMaxEvents: true,
+                weekends: true,
+                select: function(info) {
+                    // 点击日历空白处创建新事件
+                    switchToFormTab();
+                    document.getElementById('event-start').value = info.startStr.slice(0, 16);
+                    document.getElementById('event-end').value = info.endStr.slice(0, 16);
+                    document.getElementById('event-title').focus();
+                },
+                eventClick: function(info) {
+                    // 点击事件查看/编辑
+                    editEvent(info.event.id);
+                },
+                eventDrop: function(info) {
+                    // 事件拖拽更新
+                    updateEventFromCalendar(info.event);
+                },
+                eventResize: function(info) {
+                    // 事件大小调整更新
+                    updateEventFromCalendar(info.event);
+                },
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    // 从API加载事件
+                    fetchEvents(fetchInfo.start, fetchInfo.end)
+                        .then(events => {
+                            const formattedEvents = events.map(event => ({
+                                id: event.id,
+                                title: event.title,
+                                start: event.start_time,
+                                end: event.end_time,
+                                extendedProps: {
+                                    description: event.description,
+                                    event_type: event.event_type,
+                                    location: event.location,
+                                    participants: event.participants,
+                                    status: event.status,
+                                    reminder_minutes: event.reminder_minutes,
+                                    is_all_day: event.is_all_day
+                                },
+                                backgroundColor: getEventColor(event.event_type),
+                                borderColor: getEventColor(event.event_type),
+                                textColor: 'white'
+                            }));
+                            successCallback(formattedEvents);
+                        })
+                        .catch(error => {
+                            console.error('加载日历事件失败:', error);
+                            failureCallback(error);
+                        });
+                },
+                eventContent: function(info) {
+                    // 自定义事件内容
+                    const eventType = info.event.extendedProps.event_type;
+                    const typeIcon = getEventTypeIcon(eventType);
+                    
+                    return {
+                        html: `<div class="fc-event-content">
+                            <i class="fas fa-${typeIcon}"></i>
+                            ${info.event.title}
+                        </div>`
+                    };
+                }
+            });
+            
+            calendar.render();
+        }
+        
+        // 从API获取事件
+        async function fetchEvents(startDate, endDate) {
+            try {
+                const params = new URLSearchParams();
+                if (startDate) params.append('start', startDate.toISOString());
+                if (endDate) params.append('end', endDate.toISOString());
+                
+                const response = await fetch(`${API_BASE}?${params.toString()}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    return result.data;
+                } else {
+                    throw new Error(result.message || '获取事件失败');
+                }
+            } catch (error) {
+                console.error('获取事件失败:', error);
+                showAlert('获取日程数据失败: ' + error.message, 'danger');
+                return [];
+            }
+        }
+        
+        // 获取事件颜色
+        function getEventColor(eventType) {
+            switch(eventType) {
+                case 'meeting': return '#2196F3'; // 蓝色
+                case 'work': return '#4CAF50';    // 绿色
+                case 'personal': return '#9C27B0'; // 紫色
+                default: return '#607D8B';        // 灰色
+            }
+        }
+        
+        // 获取事件类型图标
+        function getEventTypeIcon(eventType) {
+            switch(eventType) {
+                case 'meeting': return 'users';
+                case 'work': return 'briefcase';
+                case 'personal': return 'user';
+                default: return 'calendar';
+            }
+        }
+        
+        // 获取事件类型文本
+        function getEventTypeText(eventType) {
+            switch(eventType) {
+                case 'meeting': return '会议';
+                case 'work': return '工作';
+                case 'personal': return '个人';
+                default: return '其他';
+            }
+        }
+        
+        // 获取状态文本
+        function getStatusText(status) {
+            switch(status) {
+                case 'scheduled': return '已安排';
+                case 'in_progress': return '进行中';
+                case 'completed': return '已完成';
+                case 'cancelled': return '已取消';
+                default: return status;
+            }
+        }
+        
+        // 初始化表单
+        function initForm() {
+            // 设置默认时间（当前时间往后30分钟）
+            const now = new Date();
+            const startTime = new Date(now.getTime() + 30 * 60000); // 30分钟后
+            
+            document.getElementById('event-start').value = startTime.toISOString().slice(0, 16);
+            
+            const endTime = new Date(startTime.getTime() + 60 * 60000); // 1小时后
+            document.getElementById('event-end').value = endTime.toISOString().slice(0, 16);
+        }
+        
+        // 重置表单
+        function resetForm() {
+            document.getElementById('event-form').reset();
+            initForm();
+            editingEventId = null;
+            document.getElementById('event-form').querySelector('button[type="submit"]').innerHTML = 
+                '<i class="fas fa-save"></i> 保存日程';
+            document.querySelector('#form-tab .form-section-title').innerHTML = 
+                '<i class="fas fa-calendar-plus"></i> 新建日程安排';
+        }
+        
+        // 表单提交处理
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            // 收集表单数据
+            const formData = {
+                title: document.getElementById('event-title').value.trim(),
+                event_type: document.getElementById('event-type').value,
+                start_time: document.getElementById('event-start').value + ':00',
+                end_time: document.getElementById('event-end').value + ':00',
+                location: document.getElementById('event-location').value.trim(),
+                participants: document.getElementById('event-participants').value.trim(),
+                description: document.getElementById('event-description').value.trim(),
+                reminder_minutes: parseInt(document.getElementById('event-reminder').value),
+                is_all_day: document.getElementById('event-all-day').checked
+            };
+            
+            // 处理参与者列表
+            if (formData.participants) {
+                formData.participants = formData.participants.split(',').map(p => p.trim()).filter(p => p);
+            }
+            
+            try {
+                let response;
+                
+                if (editingEventId) {
+                    // 更新现有事件
+                    response = await fetch(`${API_BASE}/${editingEventId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                } else {
+                    // 创建新事件
+                    response = await fetch(API_BASE, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(editingEventId ? '日程更新成功！' : '日程创建成功！', 'success');
+                    
+                    // 重置表单
+                    resetForm();
+                    
+                    // 刷新日历和列表
+                    calendar.refetchEvents();
+                    loadEventList();
+                    loadTodayStats();
+                    loadUpcomingStats();
+                    
+                    // 切换到日历视图
+                    switchTab('calendar');
+                } else {
+                    throw new Error(result.message || '操作失败');
+                }
+            } catch (error) {
+                console.error('保存事件失败:', error);
+                showAlert('保存失败: ' + error.message, 'danger');
+            }
+        }
+        
+        // 编辑事件
+        async function editEvent(eventId) {
+            try {
+                const response = await fetch(`${API_BASE}/${eventId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const event = result.data;
+                    editingEventId = event.id;
+                    
+                    // 填充表单
+                    document.getElementById('event-title').value = event.title;
+                    document.getElementById('event-type').value = event.event_type;
+                    document.getElementById('event-start').value = event.start_time.slice(0, 16);
+                    document.getElementById('event-end').value = event.end_time.slice(0, 16);
+                    document.getElementById('event-location').value = event.location || '';
+                    document.getElementById('event-participants').value = event.participants.join(', ');
+                    document.getElementById('event-description').value = event.description || '';
+                    document.getElementById('event-reminder').value = event.reminder_minutes || 15;
+                    document.getElementById('event-all-day').checked = event.is_all_day || false;
+                    
+                    // 更新表单标题和按钮
+                    document.getElementById('event-form').querySelector('button[type="submit"]').innerHTML = 
+                        '<i class="fas fa-edit"></i> 更新日程';
+                    document.querySelector('#form-tab .form-section-title').innerHTML = 
+                        '<i class="fas fa-edit"></i> 编辑日程安排';
+                    
+                    // 切换到表单视图
+                    switchToFormTab();
+                } else {
+                    throw new Error(result.message || '获取事件失败');
+                }
+            } catch (error) {
+                console.error('编辑事件失败:', error);
+                showAlert('编辑失败: ' + error.message, 'danger');
+            }
+        }
+        
+        // 从日历更新事件
+        async function updateEventFromCalendar(calendarEvent) {
+            try {
+                const eventData = {
+                    start_time: calendarEvent.startStr,
+                    end_time: calendarEvent.endStr,
+                    title: calendarEvent.title,
+                    event_type: calendarEvent.extendedProps.event_type
+                };
+                
+                const response = await fetch(`${API_BASE}/${calendarEvent.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventData)
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || '更新失败');
+                }
+            } catch (error) {
+                console.error('更新事件失败:', error);
+                showAlert('更新失败: ' + error.message, 'danger');
+                // 恢复日历视图
+                calendar.refetchEvents();
+            }
+        }
+        
+        // 删除事件
+        async function deleteEvent(eventId) {
+            if (!confirm('确定要删除这个日程吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/${eventId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('日程删除成功！', 'success');
+                    
+                    // 刷新日历和列表
+                    calendar.refetchEvents();
+                    loadEventList();
+                    loadTodayStats();
+                    loadUpcomingStats();
+                } else {
+                    throw new Error(result.message || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除事件失败:', error);
+                showAlert('删除失败: ' + error.message, 'danger');
+            }
+        }
+        
+        // 加载今日统计
+        async function loadTodayStats() {
+            try {
+                const response = await fetch(`${API_BASE}/today`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const todayEvents = result.data;
+                    document.getElementById('today-count').textContent = todayEvents.length;
+                    
+                    // 计算会议和工作数量
+                    const meetings = todayEvents.filter(e => e.event_type === 'meeting').length;
+                    const work = todayEvents.filter(e => e.event_type === 'work').length;
+                    
+                    document.getElementById('meeting-count').textContent = meetings;
+                    document.getElementById('work-count').textContent = work;
+                }
+            } catch (error) {
+                console.error('加载今日统计失败:', error);
+            }
+        }
+        
+        // 加载即将发生统计
+        async function loadUpcomingStats() {
+            try {
+                const response = await fetch(`${API_BASE}/upcoming`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('upcoming-count').textContent = result.data.length;
+                }
+            } catch (error) {
+                console.error('加载即将发生统计失败:', error);
+            }
+        }
+        
+        // 加载事件列表
+        async function loadEventList(filter = 'all') {
+            try {
+                let url = API_BASE;
+                
+                switch(filter) {
+                    case 'today':
+                        url = `${API_BASE}/today`;
+                        break;
+                    case 'upcoming':
+                        url = `${API_BASE}/upcoming`;
+                        break;
+                    case 'meeting':
+                        url = `${API_BASE}?type=meeting`;
+                        break;
+                    case 'work':
+                        url = `${API_BASE}?type=work`;
+                        break;
+                }
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentEvents = result.data;
+                    renderEventList(currentEvents);
+                } else {
+                    throw new Error(result.message || '加载事件列表失败');
+                }
+            } catch (error) {
+                console.error('加载事件列表失败:', error);
+                document.getElementById('events-list').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> 加载日程列表失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 渲染事件列表
+        function renderEventList(events) {
+            if (events.length === 0) {
+                document.getElementById('events-list').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无日程安排</h5>
+                        <p class="text-muted">点击"新建日程"按钮添加您的第一个日程安排</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            events.forEach(event => {
+                const eventType = event.event_type;
+                const typeText = getEventTypeText(eventType);
+                const typeClass = `badge-${eventType}`;
+                const statusText = getStatusText(event.status);
+                const statusClass = `status-${event.status}`;
+                
+                const startDate = new Date(event.start_time);
+                const endDate = new Date(event.end_time);
+                const dateStr = startDate.toLocaleDateString('zh-CN', { 
+                    month: 'long', 
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+                const timeStr = startDate.toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                }) + ' - ' + endDate.toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                });
+                
+                html += `
+                <div class="card event-card ${eventType} mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="card-title">
+                                    ${event.title}
+                                    <span class="event-badge ${typeClass}">${typeText}</span>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </h5>
+                                
+                                <p class="card-text">
+                                    <i class="fas fa-clock text-primary"></i> ${dateStr} ${timeStr}
+                                    ${event.location ? `<br/><i class="fas fa-map-marker-alt text-primary"></i> ${event.location}` : ''}
+                                    ${event.participants && event.participants.length > 0 ? 
+                                        `<br/><i class="fas fa-users text-primary"></i> ${event.participants.join(', ')}` : ''}
+                                    ${event.description ? `<br/><i class="fas fa-file-alt text-primary"></i> ${event.description}` : ''}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-primary btn-sm" onclick="editEvent(${event.id})">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteEvent(${event.id})">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            
+            document.getElementById('events-list').innerHTML = html;
+        }
+        
+        // 搜索事件
+        function searchEvents() {
+            const searchTerm = document.getElementById('search-events').value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                renderEventList(currentEvents);
+                return;
+            }
+            
+            const filteredEvents = currentEvents.filter(event => 
+                event.title.toLowerCase().includes(searchTerm) ||
+                event.description.toLowerCase().includes(searchTerm) ||
+                event.location.toLowerCase().includes(searchTerm) ||
+                (event.participants && event.participants.some(p => p.toLowerCase().includes(searchTerm)))
+            );
+            
+            renderEventList(filteredEvents);
+        }
+        
+        // 过滤事件
+        function filterEvents(filter) {
+            // 更新按钮状态
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            loadEventList(filter);
+        }
+        
+        // 切换选项卡
+        function switchTab(tabName) {
+            // 隐藏所有选项卡内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // 移除所有选项卡按钮的激活状态
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 显示选中的选项卡内容
+            document.getElementById(`${tabName}-tab`).style.display = 'block';
+            
+            // 激活选中的选项卡按钮
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // 如果是日历选项卡，调整日历大小
+            if (tabName === 'calendar') {
+                setTimeout(() => {
+                    calendar.updateSize();
+                }, 100);
+            }
+            
+            // 如果是列表选项卡，刷新列表
+            if (tabName === 'list') {
+                loadEventList();
+            }
+        }
+        
+        // 切换到表单选项卡
+        function switchToFormTab() {
+            switchTab('form');
+        }
+        
+        // 显示提示消息
+        function showAlert(message, type = 'info') {
+            // 移除现有的提示
+            const existingAlert = document.querySelector('.alert-dismissible');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
