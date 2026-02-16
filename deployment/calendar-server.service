@@ -1,0 +1,43 @@
+[Unit]
+Description=Calendar Management System Server
+Documentation=https://github.com/icanbot/calendar-management-system
+After=network.target
+Requires=network.target
+
+[Service]
+Type=simple
+# Run as www-data or a dedicated user
+User=www-data
+Group=www-data
+
+# Working directory
+WorkingDirectory=/var/www/switchyomega/calendar
+
+# Environment variables
+Environment="PYTHONPATH=/var/www/switchyomega/calendar"
+Environment="PYTHONUNBUFFERED=1"
+
+# Main executable
+ExecStart=/usr/bin/python3 /var/www/switchyomega/calendar/app.py
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/switchyomega/calendar/data
+ReadWritePaths=/var/www/switchyomega/calendar/uploads
+ReadWritePaths=/var/www/switchyomega/files/uploads
+ReadWritePaths=/var/log/calendar-monitor.log
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=calendar-server
+
+[Install]
+WantedBy=multi-user.target
