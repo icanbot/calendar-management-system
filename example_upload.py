@@ -148,7 +148,7 @@ def main():
     print("1. 通过浏览器访问: http://43.134.225.34/calendar/upload.html")
     print("2. 使用认证信息: admin / Admin@2026")
     print("3. 上传文件后，AI可以读取文件内容并进行分析")
-    print("4. 支持的文件类型: 文本、图片、文档等（最大10MB）")
+    print("4. 支持的文件类型: 文本、图片、文档等（最大30MB）")
 
 if __name__ == "__main__":
     main()

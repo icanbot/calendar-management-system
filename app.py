@@ -174,6 +174,8 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
             self.handle_get_upcoming_events()
         elif path == '/api/uploads' or path == '/api/uploads/':
             self.handle_get_file_list()
+        elif path == '/api/generated-files' or path == '/api/generated-files/':
+            self.handle_get_generated_files()
         elif path.startswith('/api/events/'):
             try:
                 event_id = int(path.split('/')[-1])
@@ -557,13 +559,32 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
                     elif ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']:
                         file_type = 'document'
                     
+                    # 确定文件URL：优先使用/files/uploads/，如果不存在则使用/calendar/uploads/
+                    files_uploads_path = f"/var/www/switchyomega/files/uploads/{filename}"
+                    calendar_uploads_path = f"/calendar/uploads/{filename}"
+                    files_uploads_url = f"/files/uploads/{filename}"
+                    
+                    url = files_uploads_url  # 默认使用/files/uploads/
+                    
+                    # 检查/files/uploads/中是否有符号链接或文件
+                    if not os.path.exists(files_uploads_path):
+                        # 如果/files/uploads/中不存在，创建符号链接
+                        try:
+                            source_path = os.path.join(UPLOAD_DIR, filename)
+                            os.symlink(source_path, files_uploads_path)
+                            print(f"已创建符号链接: {files_uploads_path} -> {source_path}")
+                        except Exception as e:
+                            # 如果创建符号链接失败，使用/calendar/uploads/路径
+                            print(f"创建符号链接失败，使用备选路径: {e}")
+                            url = calendar_uploads_path
+                    
                     files.append({
                         'name': filename,
                         'size': stat.st_size,
                         'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
                         'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                         'type': file_type,
-                        'url': f"/calendar/uploads/{filename}"
+                        'url': url
                     })
             
             # 按修改时间倒序排列（最新文件在前）
@@ -573,6 +594,49 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
             
         except Exception as e:
             self.send_error_response(f"获取文件列表失败：{str(e)}", 500)
+    
+    def handle_get_generated_files(self):
+        """获取生成文件列表（来自/files/目录）"""
+        try:
+            # 生成文件目录路径
+            GENERATED_DIR = '/var/www/switchyomega/files'
+            
+            if not os.path.exists(GENERATED_DIR):
+                self.send_json_response([])
+                return
+            
+            files = []
+            for filename in os.listdir(GENERATED_DIR):
+                filepath = os.path.join(GENERATED_DIR, filename)
+                if os.path.isfile(filepath):
+                    stat = os.stat(filepath)
+                    
+                    # 确定文件类型
+                    ext = filename.split('.')[-1].lower() if '.' in filename else ''
+                    file_type = 'other'
+                    if ext in ['txt', 'md', 'json', 'js', 'py', 'html', 'css', 'xml']:
+                        file_type = 'text'
+                    elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']:
+                        file_type = 'image'
+                    elif ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']:
+                        file_type = 'document'
+                    
+                    files.append({
+                        'name': filename,
+                        'size': stat.st_size,
+                        'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                        'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        'type': file_type,
+                        'url': f"/files/{filename}"  # 注意：这是nginx直接服务的路径
+                    })
+            
+            # 按修改时间倒序排列（最新文件在前）
+            files.sort(key=lambda x: x['modified'], reverse=True)
+            
+            self.send_json_response(files, message="获取生成文件列表成功")
+            
+        except Exception as e:
+            self.send_error_response(f"获取生成文件列表失败：{str(e)}", 500)
     
     def handle_delete_file(self, filename):
         """删除文件"""
@@ -670,8 +734,8 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
             file_size = file_item.file.tell()
             file_item.file.seek(0)
             
-            if file_size > 10 * 1024 * 1024:
-                self.send_error_response("文件大小超过10MB限制", 400)
+            if file_size > 30 * 1024 * 1024:
+                self.send_error_response("文件大小超过30MB限制", 400)
                 return
             
             # 生成安全文件名
@@ -721,8 +785,8 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
             file_content = base64.b64decode(data['content'])
             
             # 验证文件大小
-            if len(file_content) > 10 * 1024 * 1024:
-                self.send_error_response("文件大小超过10MB限制", 400)
+            if len(file_content) > 30 * 1024 * 1024:
+                self.send_error_response("文件大小超过30MB限制", 400)
                 return
             
             # 生成安全文件名

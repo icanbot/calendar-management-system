@@ -98,6 +98,54 @@
             margin-top: 10px;
         }
         
+        .template-download {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+        
+        .template-item {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .template-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+            color: #217346;
+        }
+        
+        .template-description {
+            margin-bottom: 15px;
+            color: #666;
+        }
+        
+        .btn-excel {
+            background: #217346;
+            border-color: #217346;
+        }
+        
+        .btn-excel:hover {
+            background: #1a5c38;
+            border-color: #1a5c38;
+        }
+        
+        .template-title-icon {
+            color: #217346;
+        }
+        
+        .generated-title-icon {
+            color: #17a2b8;
+        }
+        
+        .upload-icon {
+            color: #667eea;
+        }
+        
         .alert {
             border-radius: 10px;
             margin-bottom: 20px;
@@ -110,14 +158,15 @@
             <h1><i class="fas fa-cloud-upload-alt"></i> 文件上传系统</h1>
             <p class="subtitle">上传文件，我可以读取并帮助你分析内容</p>
             <a href="index.html" class="btn btn-light mt-3"><i class="fas fa-calendar-alt"></i> 返回日程管理</a>
+            <a href="../doc_viewer.html" class="btn btn-light mt-3 ms-2"><i class="fas fa-file-alt"></i> 在线查看文档</a>
         </div>
         
         <div class="upload-container">
             <h3><i class="fas fa-upload"></i> 上传文件</h3>
-            <p class="text-muted mb-4">支持多种文件格式：文档、图片、文本文件等（最大10MB）</p>
+            <p class="text-muted mb-4">支持多种文件格式：文档、图片、文本文件等（最大30MB）</p>
             
             <div class="drop-zone" id="dropZone">
-                <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: #667eea;"></i>
+                <i class="fas fa-cloud-upload-alt fa-3x mb-3 upload-icon"></i>
                 <h4>拖放文件到这里</h4>
                 <p class="text-muted">或点击选择文件</p>
                 <input type="file" id="fileInput" class="d-none">
@@ -160,26 +209,36 @@
             </div>
         </div>
         
-        <div class="template-download" style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 30px; box-shadow: 0 3px 15px rgba(0,0,0,0.08);">
-            <h3><i class="fas fa-file-excel" style="color: #217346;"></i> 模板下载</h3>
+        <div class="file-list">
+            <h3><i class="fas fa-file-export generated-title-icon"></i> 生成的文件</h3>
+            <p class="text-muted mb-4">通过AI处理生成的文件（如提取、整理后的Excel表格）</p>
+            <div id="generatedFileListContainer">
+                <div class="alert alert-info">
+                    <i class="fas fa-sync-alt fa-spin"></i> 正在加载生成文件列表...
+                </div>
+            </div>
+        </div>
+        
+        <div class="template-download">
+            <h3><i class="fas fa-file-excel template-title-icon"></i> 模板下载</h3>
             <p class="text-muted mb-4">项目月度工作计划Excel模板，按1-12月横向展示工作内容</p>
             
-            <div class="template-item" style="border: 1px solid #e9ecef; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
+            <div class="template-item">
                 <div class="d-flex align-items-center">
-                    <div style="font-size: 2rem; margin-right: 15px; color: #217346;">
+                    <div class="template-icon">
                         <i class="fas fa-file-excel"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h5 style="margin-bottom: 5px;">项目月度工作计划表.xlsx</h5>
-                        <div class="d-flex justify-content-between text-muted small" style="margin-bottom: 10px;">
+                        <h5 class="mb-1">项目月度工作计划表.xlsx</h5>
+                        <div class="d-flex justify-content-between text-muted small mb-2">
                             <span><i class="fas fa-hdd"></i> 6.3KB</span>
                             <span><i class="fas fa-clock"></i> 刚刚创建</span>
                         </div>
-                        <p style="margin-bottom: 15px; color: #666;">
+                        <p class="template-description">
                             包含《中国石化集中统一电力交易与综合管理平台建设项目》2026年1-12月工作计划示例，格式符合要求。
                         </p>
                         <div>
-                            <a href="/calendar/uploads/20260211_153918_project_monthly_plan.xlsx" class="btn btn-success" style="background: #217346; border-color: #217346;">
+                            <a href="/files/uploads/20260211_153918_project_monthly_plan.xlsx" class="btn btn-success btn-excel">
                                 <i class="fas fa-download"></i> 下载Excel模板
                             </a>
                             <button class="btn btn-outline-secondary" onclick="alert('模板说明：\\n1. 横向表头为1-12个月\\n2. 每格格式：《项目名称》本月要完成工作包括：具体工作内容\\n3. 已包含示例数据')">
@@ -190,7 +249,7 @@
                 </div>
             </div>
             
-            <div class="alert alert-info" style="margin-top: 20px;">
+            <div class="alert alert-info mt-4">
                 <i class="fas fa-lightbulb"></i>
                 <strong>格式要求：</strong> 每格内容必须按照"《项目名称》本月要完成工作包括：具体工作内容"的格式填写，如示例所示。
             </div>
@@ -201,6 +260,7 @@
         // 页面加载时获取文件列表
         document.addEventListener('DOMContentLoaded', function() {
             loadFileList();
+            loadGeneratedFileList();
             
             // 设置拖放事件
             const dropZone = document.getElementById('dropZone');
@@ -232,8 +292,8 @@
         });
         
         function handleFileSelect(file) {
-            if (file.size > 10 * 1024 * 1024) {
-                showMessage('文件大小超过10MB限制', 'danger');
+            if (file.size > 30 * 1024 * 1024) {
+                showMessage('文件大小超过30MB限制', 'danger');
                 return;
             }
             
@@ -407,6 +467,9 @@
                                     <a href="${file.url}" class="btn btn-sm btn-outline-primary" target="_blank">
                                         <i class="fas fa-eye"></i> 查看
                                     </a>
+                                    <a href="../doc_viewer.html?url=${encodeURIComponent(file.url)}" class="btn btn-sm btn-outline-info" target="_blank">
+                                        <i class="fas fa-file-alt"></i> 在线查看
+                                    </a>
                                     <button class="btn btn-sm btn-outline-success" onclick="analyzeFile('${file.name}')">
                                         <i class="fas fa-search"></i> 分析
                                     </button>
@@ -479,6 +542,99 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             `;
+        }
+        
+        function loadGeneratedFileList() {
+            const container = document.getElementById('generatedFileListContainer');
+            container.innerHTML = '<div class="alert alert-info"><i class="fas fa-sync-alt fa-spin"></i> 正在加载生成文件列表...</div>';
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/calendar/api/generated-files');
+            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success && response.data && response.data.length > 0) {
+                            displayGeneratedFileList(response.data);
+                        } else {
+                            container.innerHTML = `
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    还没有生成任何文件。
+                                </div>
+                            `;
+                        }
+                    } catch (e) {
+                        container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                解析生成文件列表失败：${e.message}
+                            </div>
+                        `;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            获取生成文件列表失败：HTTP ${xhr.status}
+                        </div>
+                    `;
+                }
+            };
+            
+            xhr.onerror = function() {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle"></i>
+                        无法连接到服务器
+                    </div>
+                `;
+            };
+            
+            xhr.send();
+        }
+        
+        function displayGeneratedFileList(files) {
+            const container = document.getElementById('generatedFileListContainer');
+            let html = '';
+            
+            files.forEach(file => {
+                const iconClass = getFileIcon(file.name);
+                const size = formatFileSize(file.size);
+                const modified = new Date(file.modified).toLocaleString();
+                
+                html += `
+                    <div class="file-item">
+                        <div class="d-flex align-items-center">
+                            <div class="file-icon ${iconClass}">
+                                <i class="fas fa-${getFileIconClass(file.type)}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">${file.name}</h6>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span><i class="fas fa-hdd"></i> ${size}</span>
+                                    <span><i class="fas fa-clock"></i> ${modified}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="${file.url}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="fas fa-download"></i> 下载
+                                    </a>
+                                    <a href="../doc_viewer.html?url=${encodeURIComponent(file.url)}" class="btn btn-sm btn-outline-info" target="_blank">
+                                        <i class="fas fa-file-alt"></i> 在线查看
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-success" onclick="analyzeFile('${file.name}')">
+                                        <i class="fas fa-search"></i> 分析
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
         }
     </script>
     
