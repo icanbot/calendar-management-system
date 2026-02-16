@@ -211,7 +211,7 @@ WantedBy=multi-user.target
 
 ## 📞 支持与联系
 
-如有问题或建议，请提交 [Issue](<repository-url>/issues) 或通过邮件联系。
+如有问题或建议，请提交 [Issue](https://github.com/icanbot/calendar-management-system/issues) 或通过邮件联系。
 
 ---
 
