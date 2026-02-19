@@ -139,7 +139,7 @@ sudo journalctl -u calendar-server -f
 ```python
 # 在 app.py 中找到以下行并修改
 USERNAME = "admin"          # 改为自定义用户名
-PASSWORD = "Admin@2026"     # 改为强密码
+PASSWORD = "[YOUR_SECURE_PASSWORD_HERE]"     # 改为强密码
 ```
 
 ### 2. 防火墙配置

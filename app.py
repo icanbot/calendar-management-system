@@ -14,6 +14,9 @@ import base64
 import traceback
 import cgi
 import shutil
+import secrets
+import time
+from typing import Dict, Optional
 
 # 数据库路径
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,44 +28,240 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # 认证信息（与nginx保持一致）
-AUTH_USER = 'admin'
-AUTH_PASS = 'Admin@2026'
+# 重要：在生产环境中，请通过环境变量设置这些值，不要硬编码在源代码中
+# 例如：export CALENDAR_USER=your_username，export CALENDAR_PASS=your_password
+AUTH_USER = os.getenv('CALENDAR_USER', 'admin')  # 默认用户名，建议通过环境变量覆盖
+AUTH_PASS = os.getenv('CALENDAR_PASS', '[YOUR_SECURE_PASSWORD_HERE]')  # 必须通过环境变量设置密码
 AUTH_STRING = base64.b64encode(f'{AUTH_USER}:{AUTH_PASS}'.encode()).decode()
+
+# Session管理配置
+SESSION_DB_PATH = os.path.join(DATA_DIR, 'sessions.db')
+SESSION_TIMEOUT = 24 * 3600  # 24小时
+SESSION_COOKIE_NAME = 'calendar_session'
+
+# 内存中的session存储（简单实现）
+_sessions: Dict[str, Dict] = {}
+
+def init_session_db():
+    """初始化session数据库（如果需要）"""
+    if not os.path.exists(SESSION_DB_PATH):
+        conn = sqlite3.connect(SESSION_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE sessions (
+                session_token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                username TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP,
+                user_agent TEXT,
+                ip_address TEXT
+            )
+        ''')
+        cursor.execute('CREATE INDEX idx_sessions_user_id ON sessions(user_id)')
+        cursor.execute('CREATE INDEX idx_sessions_expires ON sessions(expires_at)')
+        conn.commit()
+        conn.close()
+
+# 初始化session数据库
+init_session_db()
 
 class CalendarRequestHandler(BaseHTTPRequestHandler):
     """HTTP请求处理器"""
     
-    def check_auth(self):
-        """检查HTTP Basic认证"""
+    # ==================== Session管理方法 ====================
+    
+    def get_session_token(self) -> Optional[str]:
+        """从Cookie或Authorization头获取session token"""
+        # 首先检查Cookie
+        cookie_header = self.headers.get('Cookie')
+        if cookie_header:
+            cookies = {}
+            for cookie in cookie_header.split(';'):
+                if '=' in cookie:
+                    key, value = cookie.strip().split('=', 1)
+                    cookies[key] = value
+            if SESSION_COOKIE_NAME in cookies:
+                return cookies[SESSION_COOKIE_NAME]
+        
+        # 检查Authorization头（用于API调用）
         auth_header = self.headers.get('Authorization')
-        if not auth_header:
+        if auth_header and auth_header.startswith('Bearer '):
+            return auth_header.split(' ')[1]
+        
+        return None
+    
+    def validate_session(self, session_token: str) -> bool:
+        """验证session token是否有效"""
+        if not session_token:
             return False
         
-        if not auth_header.startswith('Basic '):
+        try:
+            conn = sqlite3.connect(SESSION_DB_PATH)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT session_token, expires_at 
+                FROM sessions 
+                WHERE session_token = ? AND (expires_at IS NULL OR expires_at > ?)
+            ''', (session_token, datetime.now().isoformat()))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                # 更新最后活动时间
+                conn = sqlite3.connect(SESSION_DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE sessions 
+                    SET last_activity = ? 
+                    WHERE session_token = ?
+                ''', (datetime.now().isoformat(), session_token))
+                conn.commit()
+                conn.close()
+                return True
+            
             return False
+        except sqlite3.Error:
+            # 数据库错误，回退到内存存储
+            return session_token in _sessions and _sessions[session_token].get('expires_at', 0) > time.time()
+    
+    def create_session(self, username: str, user_id: str = None) -> str:
+        """创建新的session"""
+        if user_id is None:
+            user_id = username
         
-        encoded = auth_header.split(' ')[1]
-        decoded = base64.b64decode(encoded).decode()
-        return decoded == f'{AUTH_USER}:{AUTH_PASS}'
+        session_token = secrets.token_urlsafe(32)
+        created_at = datetime.now()
+        expires_at = created_at + timedelta(seconds=SESSION_TIMEOUT)
+        
+        try:
+            conn = sqlite3.connect(SESSION_DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO sessions 
+                (session_token, user_id, username, created_at, last_activity, expires_at, user_agent, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                session_token,
+                user_id,
+                username,
+                created_at.isoformat(),
+                created_at.isoformat(),
+                expires_at.isoformat(),
+                self.headers.get('User-Agent', ''),
+                self.headers.get('X-Real-IP', self.client_address[0])
+            ))
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            # 回退到内存存储
+            _sessions[session_token] = {
+                'user_id': user_id,
+                'username': username,
+                'created_at': created_at,
+                'expires_at': expires_at.timestamp(),
+                'user_agent': self.headers.get('User-Agent', ''),
+                'ip_address': self.client_address[0]
+            }
+        
+        return session_token
+    
+    def delete_session(self, session_token: str):
+        """删除session"""
+        try:
+            conn = sqlite3.connect(SESSION_DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM sessions WHERE session_token = ?', (session_token,))
+            conn.commit()
+            conn.close()
+        except sqlite3.Error:
+            # 回退到内存存储
+            if session_token in _sessions:
+                del _sessions[session_token]
+    
+    def get_current_user(self) -> Optional[Dict]:
+        """获取当前登录用户信息"""
+        session_token = self.get_session_token()
+        if not session_token or not self.validate_session(session_token):
+            return None
+        
+        try:
+            conn = sqlite3.connect(SESSION_DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT user_id, username 
+                FROM sessions 
+                WHERE session_token = ?
+            ''', (session_token,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                return {
+                    'user_id': result[0],
+                    'username': result[1]
+                }
+        except sqlite3.Error:
+            # 回退到内存存储
+            if session_token in _sessions:
+                return {
+                    'user_id': _sessions[session_token]['user_id'],
+                    'username': _sessions[session_token]['username']
+                }
+        
+        return None
+    
+    def check_auth(self):
+        """检查认证（兼容Basic Auth和Session）"""
+        # 首先检查session
+        if self.get_current_user() is not None:
+            return True
+        
+        # 向后兼容：检查Basic Auth（主要用于Nginx传递的认证）
+        auth_header = self.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Basic '):
+            encoded = auth_header.split(' ')[1]
+            try:
+                decoded = base64.b64decode(encoded).decode()
+                return decoded == f'{AUTH_USER}:{AUTH_PASS}'
+            except:
+                return False
+        
+        return False
     
     def require_auth(self):
         """要求认证"""
-        self.send_response(401)
-        self.send_header('WWW-Authenticate', 'Basic realm="Restricted Access"')
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps({
-            'success': False,
-            'message': '需要认证',
-            'data': None
-        }).encode())
-        return False
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        
+        # API请求返回JSON错误
+        if path.startswith('/api/'):
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'success': False,
+                'message': '需要登录',
+                'data': None,
+                'redirect': '/calendar/login.html'
+            }).encode())
+            return False
+        else:
+            # HTML页面重定向到登录页面
+            self.send_response(302)
+            self.send_header('Location', '/calendar/login.html')
+            self.end_headers()
+            return False
     
     def send_json_response(self, data, status_code=200, message="成功", success=None):
         """发送JSON响应"""
         self.send_response(status_code)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
         
         if success is None:
@@ -158,12 +357,21 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
     
     def do_GET(self):
         """处理GET请求"""
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        
+        # 特殊处理：登录页面和检查session的API不需要认证
+        if path == '/login.html' or path == '/calendar/login.html':
+            self.serve_static_file('login.html')
+            return
+        elif path == '/api/check_session' or path == '/api/check_session/':
+            self.handle_check_session()
+            return
+        
+        # 其他请求需要认证
         if not self.check_auth():
             self.require_auth()
             return
-        
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
         
         # 路由分发
         if path == '/api/events' or path == '/api/events/':
@@ -190,8 +398,32 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
         else:
             self.send_error_response("请求路径无效", 404)
     
+    def do_OPTIONS(self):
+        """处理OPTIONS请求，用于CORS预检"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        self.send_header('Access-Control-Max-Age', '86400')  # 24小时
+        self.end_headers()
+    
     def do_POST(self):
         """处理POST请求"""
+        # 特殊处理：登录API不需要认证
+        if self.path == '/api/login' or self.path == '/api/login/':
+            self.handle_login()
+            return
+        
+        # 登出API需要认证
+        if self.path == '/api/logout' or self.path == '/api/logout/':
+            if not self.check_auth():
+                self.require_auth()
+                return
+            self.handle_logout()
+            return
+        
+        # 其他POST请求需要认证
         if not self.check_auth():
             self.require_auth()
             return
@@ -280,6 +512,90 @@ class CalendarRequestHandler(BaseHTTPRequestHandler):
             
         except Exception as e:
             self.send_error_response(f"读取文件失败：{str(e)}", 500)
+    
+    # ==================== Session处理相关方法 ====================
+    
+    def handle_login(self):
+        """处理登录请求"""
+        try:
+            data = self.parse_request_data()
+            username = data.get('username', '').strip()
+            password = data.get('password', '')
+            
+            # 验证用户名和密码
+            if username == AUTH_USER and password == AUTH_PASS:
+                # 创建session
+                session_token = self.create_session(username)
+                
+                # 设置session cookie
+                expires = datetime.now() + timedelta(seconds=SESSION_TIMEOUT)
+                cookie = f'{SESSION_COOKIE_NAME}={session_token}; Path=/; HttpOnly; SameSite=Lax; Expires={expires.strftime("%a, %d %b %Y %H:%M:%S GMT")}'
+                
+                # 手动发送响应，以便设置cookie
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+                self.send_header('Set-Cookie', cookie)
+                self.end_headers()
+                
+                response = {
+                    "success": True,
+                    "message": "登录成功",
+                    "data": {
+                        'session_token': session_token,
+                        'username': username,
+                        'expires_at': expires.isoformat()
+                    },
+                    "timestamp": datetime.now().isoformat()
+                }
+                self.wfile.write(json.dumps(response, ensure_ascii=False).encode())
+            else:
+                self.send_error_response("用户名或密码错误", 401)
+                
+        except Exception as e:
+            self.send_error_response(f"登录处理失败：{str(e)}", 500)
+    
+    def handle_logout(self):
+        """处理登出请求"""
+        session_token = self.get_session_token()
+        
+        # 清除cookie
+        cookie = f'{SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        
+        if session_token:
+            self.delete_session(session_token)
+        
+        # 手动发送响应，以便设置cookie
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Set-Cookie', cookie)
+        self.end_headers()
+        
+        response = {
+            "success": True,
+            "message": "已登出",
+            "data": None,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.wfile.write(json.dumps(response, ensure_ascii=False).encode())
+    
+    def handle_check_session(self):
+        """检查session状态"""
+        user = self.get_current_user()
+        if user:
+            self.send_json_response({
+                'authenticated': True,
+                'username': user['username'],
+                'user_id': user['user_id']
+            })
+        else:
+            self.send_json_response({
+                'authenticated': False
+            }, 401, "未登录")
+    
+    # ==================== 原有的事件处理方法 ====================
     
     def handle_get_events(self, parsed_path):
         """获取事件列表"""

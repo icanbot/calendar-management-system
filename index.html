@@ -223,6 +223,23 @@
     </style>
 </head>
 <body>
+    <!-- Session检查 -->
+    <script>
+        // 检查用户是否已登录
+        fetch('/calendar/api/check_session')
+            .then(response => {
+                if (!response.ok) {
+                    // 未登录，重定向到登录页面
+                    window.location.href = '/calendar/login.html';
+                }
+                // 已登录，继续显示页面
+            })
+            .catch(error => {
+                console.error('Session检查失败:', error);
+                window.location.href = '/calendar/login.html';
+            });
+    </script>
+    
     <div class="container-fluid">
         <!-- 返回工具集链接 -->
         <div class="navigation">

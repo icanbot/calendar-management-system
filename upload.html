@@ -153,6 +153,23 @@
     </style>
 </head>
 <body>
+    <!-- Session检查 -->
+    <script>
+        // 检查用户是否已登录
+        fetch('/calendar/api/check_session')
+            .then(response => {
+                if (!response.ok) {
+                    // 未登录，重定向到登录页面
+                    window.location.href = '/calendar/login.html';
+                }
+                // 已登录，继续显示页面
+            })
+            .catch(error => {
+                console.error('Session检查失败:', error);
+                window.location.href = '/calendar/login.html';
+            });
+    </script>
+    
     <div class="container">
         <div class="header">
             <h1><i class="fas fa-cloud-upload-alt"></i> 文件上传系统</h1>
@@ -384,9 +401,9 @@
                 uploadBtn.disabled = false;
             });
             
-            // 添加认证头（使用base64编码的admin:Admin@2026）
+            // 认证通过session cookie自动处理
             xhr.open('POST', '/calendar/api/upload');
-            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            // 注意：cookie会自动发送，不需要手动设置Authorization头
             xhr.send(formData);
         }
         
@@ -396,7 +413,7 @@
             
             const xhr = new XMLHttpRequest();
             xhr.open('GET', '/calendar/api/uploads');
-            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            // 认证通过session cookie自动处理
             
             xhr.onload = function() {
                 if (xhr.status === 200) {
@@ -506,7 +523,7 @@
             
             const xhr = new XMLHttpRequest();
             xhr.open('DELETE', `/calendar/api/uploads/${encodeURIComponent(filename)}`);
-            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            // 认证通过session cookie自动处理
             
             xhr.onload = function() {
                 try {
@@ -550,7 +567,7 @@
             
             const xhr = new XMLHttpRequest();
             xhr.open('GET', '/calendar/api/generated-files');
-            xhr.setRequestHeader('Authorization', 'Basic YWRtaW46QWRtaW5AMjAyNg==');
+            // 认证通过session cookie自动处理
             
             xhr.onload = function() {
                 if (xhr.status === 200) {

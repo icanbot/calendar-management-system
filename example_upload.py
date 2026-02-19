@@ -10,9 +10,10 @@ import base64
 import os
 
 # 配置
-BASE_URL = "http://43.134.225.34/calendar"
-USERNAME = "admin"
-PASSWORD = "Admin@2026"
+# 重要：在生产环境中，请通过环境变量设置认证信息，不要硬编码在源代码中
+BASE_URL = os.getenv('CALENDAR_BASE_URL', 'http://localhost:8001')  # 日历服务地址
+USERNAME = os.getenv('CALENDAR_USER', 'admin')  # 用户名
+PASSWORD = os.getenv('CALENDAR_PASS', '[YOUR_SECURE_PASSWORD_HERE]')  # 密码，必须通过环境变量设置
 
 def upload_file_via_multipart(file_path):
     """通过multipart/form-data上传文件"""
@@ -145,10 +146,11 @@ def main():
     print("   完成！")
     
     print("\n=== 使用说明 ===")
-    print("1. 通过浏览器访问: http://43.134.225.34/calendar/upload.html")
-    print("2. 使用认证信息: admin / Admin@2026")
+    print(f"1. 通过浏览器访问: {BASE_URL}/upload.html")
+    print(f"2. 使用认证信息: {USERNAME} / [配置的密码]")
     print("3. 上传文件后，AI可以读取文件内容并进行分析")
     print("4. 支持的文件类型: 文本、图片、文档等（最大30MB）")
+    print("\n注意：认证信息需要通过环境变量 CALENDAR_USER 和 CALENDAR_PASS 设置")
 
 if __name__ == "__main__":
     main()

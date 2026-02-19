@@ -152,7 +152,7 @@ CREATE TABLE events (
 
 1. **认证信息**
    - 默认用户名：`admin`
-   - 默认密码：`Admin@2026`
+   - 默认密码：`[YOUR_SECURE_PASSWORD_HERE]`
    - 生产环境请务必修改
 
 2. **文件上传**

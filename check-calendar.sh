@@ -8,8 +8,11 @@ set -e
 LOG_FILE="/var/log/calendar-monitor.log"
 SERVICE_NAME="calendar-server"
 API_URL="http://localhost:8001/api/events"
-# 认证信息 - 请修改为实际的用户名和密码
-AUTH="admin:Admin@2026"
+# 认证信息 - 必须通过环境变量设置，不要硬编码在脚本中
+# 设置方法：export CALENDAR_USER=your_username，export CALENDAR_PASS=your_password
+CALENDAR_USER="${CALENDAR_USER:-admin}"
+CALENDAR_PASS="${CALENDAR_PASS:-[YOUR_SECURE_PASSWORD_HERE]}"
+AUTH="$CALENDAR_USER:$CALENDAR_PASS"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
